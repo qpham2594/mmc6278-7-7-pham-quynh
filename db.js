@@ -1,10 +1,5 @@
 const mysql = require("mysql2");
 
-const session = require('express-session')
-const MySQLStore = require('express-mysql-session')(session);
-const db = require('./db')
-
-
 const config = process.env.JAWSDB_URL || {
   connectionLimit: 10,
   host: "localhost",
