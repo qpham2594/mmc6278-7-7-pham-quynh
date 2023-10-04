@@ -94,7 +94,7 @@ router.post('/user', async (req, res) => {
     const {username, password} = req.body
     // if the username or password is not provided, return a 400 status
     if (!username || !password)
-      return res.status(400)({error: "Need to have both username and password."})
+      return res.status(400).send('Need to have both username and password.')
     // hash the password using bcrypt.hash and use 10 salt rounds
     const hash = await bcrypt.hash(password, 10)
     // then insert the username and hashed password into the users table
@@ -108,9 +108,11 @@ router.post('/user', async (req, res) => {
   // if an error occurs with a code property equal to 'ER_DUP_ENTRY'
   // return a 409 status code (the user exists already)
   // for any other error, return a 500 status
-    if (error.code === 'ER_DUP_ENTRY')
-      return res.status(409).send('Account already exists')
-    res.status(500).send('Error creating user ' + error.message || error.sqlMessage)
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).send('Account already exists');
+    } else {
+      return res.status(500).send('Error creating user ' + error.message || error.sqlMessage)
+    }
   }
 })
 
@@ -132,13 +134,19 @@ router.post('/login', async (req, res) => {
   // If the user is found, use bcrypt.compare to compare the password to the hash
   const userFound = await bcrypt.compare(password, user.password)
     // If the password is wrong, return a 400 status code
-  if (!password)
+  if (!userFound)
     return res.status(400).send('Password is incorrect.')
     // If the password matches, set req.session.loggedIn to true
-  if (password === user.password)
     req.session.loggedIn = true
     // set req.session.userId to the user's id
     req.session.userId = user.id
+
+    // not in the directions, but need to include cartCount to dislay the cart items based on user.id!!!
+    const [[{ cartCount }]] = await db.query(
+      `SELECT COUNT(*) AS cartCount FROM cart WHERE user_id=?`,
+      [user.id]
+    )
+
     // call req.session.save and in the callback redirect to /
     req.session.save(() => res.redirect('/'))
   } catch (error) {
